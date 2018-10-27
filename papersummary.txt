@@ -1,0 +1,11 @@
+# Your paper summary goes here:
+
+PID: A12345678
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit...
+
+# If in a group of two, put the second paper summary here:
+
+PID: A12345678
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit...
