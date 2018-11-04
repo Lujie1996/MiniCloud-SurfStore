@@ -27,7 +27,6 @@ class SurfStoreClient():
 	def upload(self, filepath):
 		pass
 
-
 	"""
 	delete(filename) : Signals the MetadataStore to delete a file.
 	"""

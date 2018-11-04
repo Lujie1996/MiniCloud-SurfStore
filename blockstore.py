@@ -15,7 +15,7 @@ class BlockStore(rpyc.Service):
 	Initialize any datastructures you may need.
 	"""
 	def __init__(self):
-		pass
+		self.hash_table = dict()
 
 	"""
         store_block(h, b) : Stores block b in the key-value store, indexed by
@@ -25,8 +25,11 @@ class BlockStore(rpyc.Service):
         method as an RPC call
 	"""
 	def exposed_store_block(self, h, block):
-		pass
-
+		try:
+			self.hash_table[h] = block;
+			return "store block OK"
+		except:
+			return Exception("store block failed")
 
 	"""
 	b = get_block(h) : Retrieves a block indexed by hash value h
@@ -35,17 +38,23 @@ class BlockStore(rpyc.Service):
         method as an RPC call
 	"""
 	def exposed_get_block(self, h):
-		pass
+		try:
+			return self.hash_table[h]
+		except:
+			return Exception("retrieval failed")
 
 	"""
-        rue/False = has_block(h) : Signals whether block indexed by h exists
+        True/False = has_block(h) : Signals whether block indexed by h exists
         in the BlockStore service
 
         As per rpyc syntax, adding the prefix 'exposed_' will expose this
         method as an RPC call
 	"""
 	def exposed_has_block(self, h):
-		pass
+		if h in self.hash_table:
+			return True
+		else
+			return False
 		
 if __name__ == '__main__':
 	from rpyc.utils.server import ThreadPoolServer
