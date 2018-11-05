@@ -38,11 +38,8 @@ class SurfStoreClient():
     """
 
     def upload(self, filepath):
-        # parse filename
-        if '/' in filepath:
-            filename = filepath.split('/')[-1]
-        else:
-            filename = filepath
+        path = os.path.realpath(filepath)
+        filename = path.split('/')[-1]
 
         if not os.path.exists(filepath):
             print("Not Found")

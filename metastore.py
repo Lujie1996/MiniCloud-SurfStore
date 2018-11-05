@@ -54,7 +54,7 @@ class MetadataStore(rpyc.Service):
         '''
 
         configuration = parse_config(config)
-        self.no_of_block_stores = configuration[0]
+        self.no_of_block_stores = int(configuration[0])
         self.metadata = configuration[1]
         self.blockstores = configuration[2]
 
