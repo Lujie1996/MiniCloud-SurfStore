@@ -60,7 +60,7 @@ class MetadataStore(rpyc.Service):
         hashlist = list(eval(hashlist))
 
         # check version
-        if filename in self.filename_version and version != self.filename_version[filename] + 1:
+        if filename in self.filename_version and int(version) != self.filename_version[filename] + 1:
             return -1, self.filename_version[filename]
 
         # gather missing blocks
@@ -101,13 +101,13 @@ class MetadataStore(rpyc.Service):
     def exposed_delete_file(self, filename, version):
         # check version
         if filename in self.filename_version:
-            if version != self.filename_version[filename] + 1:
+            if int(version) != self.filename_version[filename] + 1:
                 return -1, self.filename_version[filename]
             self.tombstone_filename_version[filename] = self.filename_version[filename] + 1
             del self.filename_hashlist[filename]
             return 0
         elif filename in self.tombstone_filename_version:
-            if version != self.tombstone_filename_version[filename] + 1:
+            if int(version) != self.tombstone_filename_version[filename] + 1:
                 return -1, self.tombstone_filename_version[filename]
             self.tombstone_filename_version[filename] += 1
             return 0
