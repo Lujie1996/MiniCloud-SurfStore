@@ -41,7 +41,7 @@ class SurfStoreClient():
         path = os.path.realpath(filepath)
         filename = path.split('/')[-1]
 
-        if not os.path.exists(filepath):
+        if not os.path.isfile(path):
             print("Not Found")
             return
 
@@ -63,7 +63,7 @@ class SurfStoreClient():
         for key in self.hash_block:
             hashlist_to_send.append(key)
 
-        msg = self.metadata_conn.root.modify_file(filename, int(server_version) + 1, str(hashlist_to_send))
+        msg = self.metadata_conn.root.modify_file(filename, int(server_version)+1, str(hashlist_to_send))
 
         # extract version and missing blocks from msg
         missing_blocks = list()

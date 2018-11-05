@@ -101,12 +101,15 @@ class MetadataStore(rpyc.Service):
     def exposed_delete_file(self, filename, version):
         # check version
         if filename in self.filename_version:
+            # print("1," + str(version) + " " + str(self.filename_version[filename]))
             if int(version) != self.filename_version[filename] + 1:
                 return -1, self.filename_version[filename]
             self.tombstone_filename_version[filename] = self.filename_version[filename] + 1
             del self.filename_hashlist[filename]
+            del self.filename_version[filename]
             return 0
         elif filename in self.tombstone_filename_version:
+            # print("2," + str(version) + " " + str(self.tombstone_filename_version[filename]))
             if int(version) != self.tombstone_filename_version[filename] + 1:
                 return -1, self.tombstone_filename_version[filename]
             self.tombstone_filename_version[filename] += 1
