@@ -72,7 +72,6 @@ class MetadataStore(rpyc.Service):
             if not conn.root.has_block(hashnode):
                 missing_block_list.append(hashnode)
 
-
         if len(missing_block_list) == 0:
             # modify filename -> version
             if filename in self.filename_hashlist:
@@ -85,7 +84,6 @@ class MetadataStore(rpyc.Service):
 
             # modify filename -> hashlist
             self.filename_hashlist[filename] = hashlist
-
             return 0
         else:
             return -2, str(missing_block_list)

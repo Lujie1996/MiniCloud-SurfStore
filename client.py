@@ -46,8 +46,7 @@ class SurfStoreClient():
             return
 
         # read file into many 4096 byte blocks
-
-        with open(filepath, "rb") as f:
+        with open(path, "rb") as f:
             while True:
                 chunck = f.read(4096)
                 if chunck:
@@ -88,6 +87,7 @@ class SurfStoreClient():
 
         # second modify()
         msg = self.metadata_conn.root.modify_file(filename, new_server_version+1, str(hashlist_to_send))
+        # print(new_server_version+1)
         if msg == 0:
             print("OK")
         else:
