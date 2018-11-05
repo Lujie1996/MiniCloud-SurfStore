@@ -63,11 +63,11 @@ class SurfStoreClient():
         for key in self.hash_block:
             hashlist_to_send.append(key)
 
-        msg = self.metadata_conn.root.modify_file(filename, server_version+1, str(hashlist_to_send))
+        msg = self.metadata_conn.root.modify_file(filename, int(server_version) + 1, str(hashlist_to_send))
 
         # extract version and missing blocks from msg
         missing_blocks = list()
-        new_server_version = server_version
+        new_server_version = int(server_version)
 
         if isinstance(msg, int):
             if msg == 0:
@@ -76,9 +76,9 @@ class SurfStoreClient():
         else:
             if msg[0] == -1:
                 # version error
-                new_server_version = msg[1]
+                new_server_version = int(msg[1])
             elif msg[0] == -2:
-                # version error
+                # missing blocks
                 missing_blocks = list(eval(msg[1]))
 
         # send missing blocks to blockstore
