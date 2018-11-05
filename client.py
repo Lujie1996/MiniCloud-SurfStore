@@ -52,7 +52,7 @@ class SurfStoreClient():
         try:
             with open(filepath, "rb") as f:
                 while True:
-                    chunck = f.read(4086)
+                    chunck = f.read(4096)
                     if chunck:
                         hash_key = hashlib.sha256(chunck).hexdigest()
                         self.hash_block[hash_key] = chunck
