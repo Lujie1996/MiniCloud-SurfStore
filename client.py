@@ -63,7 +63,6 @@ class SurfStoreClient():
             return
         try:
             server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
-            server_hashlist = list(eval(server_hashlist))
         except Exception as e:
             print("read_file error.\n" + str(e))
             return

@@ -222,5 +222,9 @@ def connection_to(servers):
 
 if __name__ == '__main__':
     from rpyc.utils.server import ThreadedServer
-    server = ThreadedServer(MetadataStore(sys.argv[1]), port=6000, protocol_config={'allow_public_attrs': True,})
+    with open(sys.argv[1], "r") as f:
+        lines = f.readlines()
+    port = lines[1].split(": ")[1].split(":")[1]
+    port = port[:-1]
+    server = ThreadedServer(MetadataStore(sys.argv[1]), port=int(port), protocol_config={'allow_public_attrs': True,})
     server.start()
