@@ -7,33 +7,17 @@ A sample ErrorResponse class. Use this to respond to client requests when the re
 2. The file being read/deleted does not exist.
 3. The request for modifying/deleting a file has the wrong file version.
 
-You can use this class as it is or come up with your own implementation.
-'''
-
-
-class ErrorResponse(Exception):
-    def __init__(self, message):
-        super(ErrorResponse, self).__init__(message)
-        self.error = message
-
-    def missing_blocks(self, hashlist):
-        self.error_type = 1
-        self.missing_blocks = hashlist
-
-    def wrong_version_error(self, version):
-        self.error_type = 2
-        self.current_version = version
-
-    def file_not_found(self):
-        self.error_type = 3
-
-
-'''
 The MetadataStore RPC server class.
 
 The MetadataStore process maintains the mapping of filenames to hashlists. All
 metadata is stored in memory, and no database systems or files will be used to
 maintain the data.
+
+Error code:
+ 0 OK
+-1 Version error
+-2 Missing blocks
+-3 File not found
 '''
 
 
@@ -77,21 +61,17 @@ class MetadataStore(rpyc.Service):
 
         # check version
         if filename in self.filename_version and version != self.filename_version[filename] + 1:
-            msg = ErrorResponse("Version Error")
-            msg.wrong_version_error(self.filename_version[filename])
-            return msg
+            return -1, self.filename_version[filename]
 
         # gather missing blocks
         missing_block_list = list()
-        try:
-            for hashnode in hashlist:
-                server_no = int(hashnode, 16) % self.no_of_block_stores
-                conn = self.blockstore_conns[server_no]
-                if not conn.root.has_block(hashnode):
-                    missing_block_list.append(hashnode)
-        except:
-            print("check has_hash() failed")
-            return
+
+        for hashnode in hashlist:
+            server_no = int(hashnode, 16) % self.no_of_block_stores
+            conn = self.blockstore_conns[server_no]
+            if not conn.root.has_block(hashnode):
+                missing_block_list.append(hashnode)
+
 
         if len(missing_block_list) == 0:
             # modify filename -> version
@@ -106,11 +86,9 @@ class MetadataStore(rpyc.Service):
             # modify filename -> hashlist
             self.filename_hashlist[filename] = hashlist
 
-            return "OK"
+            return 0
         else:
-            msg = ErrorResponse("Missing Blocks")
-            msg.missing_blocks(tuple(missing_block_list))
-            return msg
+            return -2, str(missing_block_list)
 
     '''
         DeleteFile(f,v): Deletes file f. Like ModifyFile(), the provided
@@ -124,26 +102,17 @@ class MetadataStore(rpyc.Service):
         # check version
         if filename in self.filename_version:
             if version != self.filename_version[filename] + 1:
-                msg = ErrorResponse("Version Error")
-                msg.wrong_version_error(self.filename_version[filename])
-                return msg
+                return -1, self.filename_version[filename]
             self.tombstone_filename_version[filename] = self.filename_version[filename] + 1
-            try:
-                del self.filename_hashlist[filename]
-            except Exception as e:
-                print(str(e))
-            return "OK"
+            del self.filename_hashlist[filename]
+            return 0
         elif filename in self.tombstone_filename_version:
             if version != self.tombstone_filename_version[filename] + 1:
-                msg = ErrorResponse("Version Error")
-                msg.wrong_version_error(self.tombstone_filename_version[filename])
-                return msg
+                return -1, self.tombstone_filename_version[filename]
             self.tombstone_filename_version[filename] += 1
-            return "OK"
+            return 0
         else:
-            msg = ErrorResponse("File Not Found")
-            msg.file_not_found()
-            return msg
+            return -3
 
     '''
         (v,hl) = ReadFile(f): Reads the file with filename f, returning the
@@ -212,11 +181,8 @@ def connection_to(servers):
         host = server["host"]
         port = int(server["port"])
         connections = list()
-        try:
-            conn = rpyc.connect(host, port)
-            connections.append(conn)
-        except:
-            return Exception("connection failed! (tried to connect with " + host + "," + str(port) + " but failed)")
+        conn = rpyc.connect(host, port)
+        connections.append(conn)
         return connections
 
 

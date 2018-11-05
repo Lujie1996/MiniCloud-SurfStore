@@ -2,7 +2,7 @@ import rpyc
 import hashlib
 import os
 import sys
-from metastore import parse_config, connection_to, ErrorResponse
+from metastore import parse_config, connection_to
 
 """
 A client is a program that interacts with SurfStore. It is used to create,
@@ -46,74 +46,49 @@ class SurfStoreClient():
             return
 
         # read file into many 4096 byte blocks
-        try:
-            with open(filepath, "rb") as f:
-                while True:
-                    chunck = f.read(4096)
-                    if chunck:
-                        hash_key = hashlib.sha256(chunck).hexdigest()
-                        self.hash_block[hash_key] = chunck
-                    else:
-                        break
-        except IOError:
-            print("Read local file Error.")
-            return
-        try:
-            server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
-        except Exception as e:
-            print("read_file error.\n" + str(e))
-            return
 
-        # first modify() with metastore
+        with open(filepath, "rb") as f:
+            while True:
+                chunck = f.read(4096)
+                if chunck:
+                    hash_key = hashlib.sha256(chunck).hexdigest()
+                    self.hash_block[hash_key] = chunck
+                else:
+                    break
+
+        server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
+
+        # first modify()
         hashlist_to_send = list()
         for key in self.hash_block:
             hashlist_to_send.append(key)
-        try:
-            msg = self.metadata_conn.root.modify_file(filename, server_version+1, str(hashlist_to_send))
-        except Exception as e:
-            print("Error in Connection with MetaStore #1.\n" + str(e))
-            return
+
+        msg = self.metadata_conn.root.modify_file(filename, server_version+1, str(hashlist_to_send))
 
         # extract version and missing blocks from msg
         missing_blocks = list()
         new_server_version = server_version
-        if isinstance(msg, ErrorResponse):
-            if msg.error_type == 1:
-                # missing blocks
-                missing_blocks = msg.missing_blocks
-            elif msg.error_type == 2:
-                # version error
-                new_server_version = msg.current_version
-                print("Version Error")
-            else:
-                print("Unknown error_type.")
-        elif msg == "OK":
-            print("OK")
-            return
+
+        if isinstance(msg, int):
+            if msg == 0:
+                print("OK")
+                return
         else:
-            print("Unknown Error.")
+            if msg[0] == -1:
+                # version error
+                new_server_version = msg[1]
+            elif msg[0] == -2:
+                # version error
+                missing_blocks = list(eval(msg[1]))
 
         # send missing blocks to blockstore
         for key in missing_blocks:
             server_no = int(key, 16) % self.no_of_block_stores
-            if key in self.hash_block:
-                try:
-                    msg = self.blockstore_conns[server_no].root.store_block(key, self.hash_block[key])
-                    if msg != "OK":
-                        print("One block is failed to store.")
-                except Exception as e:
-                    print(e)
-            else:
-                print("Local block cannot find.")
-                return
+            msg = self.blockstore_conns[server_no].root.store_block(key, self.hash_block[key])
 
         # second modify()
-        try:
-            msg = self.metadata_conn.root.modify_file(filename, new_server_version+1, str(hashlist_to_send))
-        except Exception as e:
-            print("Error in Connection with MetaStore #2.\n" + str(e))
-            return
-        if msg == "OK":
+        msg = self.metadata_conn.root.modify_file(filename, new_server_version+1, str(hashlist_to_send))
+        if msg == 0:
             print("OK")
         else:
             print("Second modify() call failed.")
@@ -123,22 +98,16 @@ class SurfStoreClient():
     """
 
     def delete(self, filename):
-        try:
-            msg = self.metadata_conn.root.delete_file(filename, 1)
-        except Exception as e:
-            print("Error\n" + str(e))
-        if isinstance(msg, ErrorResponse):
-            if msg.error_type == 3:
-                print("Not Found")
-            elif msg.error_type == 2:
-                server_version = msg.current_version
-                next_msg = self.metadata_conn.root.delete_file(filename, server_version+1)
-                if next_msg == "OK":
-                    print("OK")
-                    return
-                else:
-                    print("Error")
-                    return
+        server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
+        msg = self.metadata_conn.root.delete_file(filename, server_version+1)
+        
+        if msg == 0:
+            print("OK")
+            return
+        elif msg == -3:
+            print("Not Found")
+            return
+            
 
     """
         download(filename, dst) : Downloads a file (f) from SurfStore and saves
@@ -146,12 +115,8 @@ class SurfStoreClient():
     """
 
     def download(self, filename, location):
-        try:
-            server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
-            server_hashlist = list(eval(server_hashlist))
-        except Exception as e:
-            print("read_file error\n" + str(e))
-            return
+        server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
+        server_hashlist = list(eval(server_hashlist))
 
         # when file does not exist
         if len(server_hashlist) == 0:
@@ -166,22 +131,12 @@ class SurfStoreClient():
         # fetch every individual blocks from blockstore
         for key in missing_blocks:
             server_no = int(key, 16) % self.no_of_block_stores
-            try:
-                msg = self.blockstore_conns[server_no].root.get_block(key)
-            except:
-                print("get_block error")
-                return
-            if isinstance(msg, ErrorResponse):
-                print(msg)
-                return
+            msg = self.blockstore_conns[server_no].root.get_block(key)
             self.hash_block[key] = msg
 
         # merge blocks
         content = b""
         for key in server_hashlist:
-            if key not in self.hash_block:
-                print("Missing block")
-                return
             content += self.hash_block[key]
 
         # write out file
@@ -189,12 +144,10 @@ class SurfStoreClient():
             print("Location incorrect.")
             return
         full_path = location + "/" + filename
-        try:
-            with open(full_path, "wb") as f:
-                f.write(content)
-        except IOError as e:
-            print("IO Error.\n" + str(e))
-            return
+
+        with open(full_path, "wb") as f:
+            f.write(content)
+
         print("OK")
 
     """

@@ -25,26 +25,17 @@ class BlockStore(rpyc.Service):
     """
 
     def exposed_store_block(self, h, block):
-        try:
-            self.hash_table[h] = block;
-            return "OK"
-        except:
-            return Exception("Store Failed in BlockStore")
+        self.hash_table[h] = block;
 
     """
-        b = get_block(h) : Retrieves a block indexed by hash value h
-
-        As per rpyc syntax, adding the prefix 'exposed_' will expose this method as an RPC call
+    	b = get_block(h) : Retrieves a block indexed by hash value h
+    	
+    	As per rpyc syntax, adding the prefix 'exposed_' will expose this method as an RPC call
     """
 
     def exposed_get_block(self, h):
-        try:
-            if h not in self.hash_table:
-                return Exception("Not Found")
-            else:
-                return self.hash_table[h]
-        except:
-            return Exception("Retrieval Failed")
+    	return self.hash_table[h]
+
 
     """
         True/False = has_block(h) : Signals whether block indexed by h exists in the BlockStore service
