@@ -150,15 +150,15 @@ class MetadataStore(rpyc.Service):
             version = self.filename_version[filename]
             hashlist = self.filename_hashlist[filename]
             # return version, str(hashlist)
-            return version, hashlist
+            return version, tuple(hashlist)
         elif filename in self.tombstone_filename_version:
             version = self.tombstone_filename_version[filename]
             # hashlist = str(list())
-            hashlist = list()
+            hashlist = tuple()
             return version, hashlist
         else:
             # return 0, str(list())
-            return 0, list()
+            return 0, tuple()
 
 
 def parse_config(config):
