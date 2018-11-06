@@ -101,8 +101,8 @@ class MetadataStore(rpyc.Service):
             return 0
         else:
             error = ErrorResponse("Missing Block")
-            # error.missing_blocks(missing_block_list)
-            error.missing_blocks(tuple(missing_block_list))
+            error.missing_blocks(missing_block_list)
+            # error.missing_blocks(tuple(missing_block_list))
             raise error
 
     '''
@@ -150,16 +150,16 @@ class MetadataStore(rpyc.Service):
         if filename in self.filename_hashlist:
             version = self.filename_version[filename]
             hashlist = self.filename_hashlist[filename]
-            # return version, str(hashlist)
-            return version, tuple(hashlist)
+            return version, str(hashlist)
+            # return version, tuple(hashlist)
         elif filename in self.tombstone_filename_version:
             version = self.tombstone_filename_version[filename]
-            # hashlist = str(list())
-            # return version, hashlist
-            return version, tuple()
+            hashlist = str(list())
+            return version, hashlist
+            # return version, tuple()
         else:
-            # return 0, str(list())
-            return 0, tuple()
+            return 0, str(list())
+            # return 0, tuple()
 
 
 def parse_config(config):

@@ -73,8 +73,8 @@ class SurfStoreClient():
             new_server_version = int(server_version)
             if e.error_type == 1:
                 # missing blocks
-                # missing_blocks = list(eval(e.missing_blocks))
-                missing_blocks = list(e.missing_blocks)
+                missing_blocks = list(eval(e.missing_blocks))
+                # missing_blocks = list(e.missing_blocks)
             elif e.error_type == 2:
                 # version error
                 new_server_version = int(e.current_version)
@@ -114,8 +114,8 @@ class SurfStoreClient():
 
     def download(self, filename, location):
         server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
-        # server_hashlist = list(eval(server_hashlist)
-        server_hashlist = list(server_hashlist)
+        server_hashlist = list(eval(server_hashlist))
+        # server_hashlist = list(server_hashlist)
 
         # when file does not exist
         if len(server_hashlist) == 0:
