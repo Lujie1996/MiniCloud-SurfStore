@@ -13,12 +13,24 @@ The MetadataStore process maintains the mapping of filenames to hashlists. All
 metadata is stored in memory, and no database systems or files will be used to
 maintain the data.
 
-Error code:
- 0 OK
--1 Version error
--2 Missing blocks
--3 File not found
 '''
+
+
+class ErrorResponse(Exception):
+    def __init__(self, message):
+        super(ErrorResponse, self).__init__(message)
+        self.error = message
+
+    def missing_blocks(self, hashlist):
+        self.error_type = 1
+        self.missing_blocks = hashlist
+
+    def wrong_version_error(self, version):
+        self.error_type = 2
+        self.current_version = version
+
+    def file_not_found(self):
+        self.error_type = 3
 
 
 class MetadataStore(rpyc.Service):
@@ -61,7 +73,9 @@ class MetadataStore(rpyc.Service):
 
         # check version
         if filename in self.filename_version and int(version) != self.filename_version[filename] + 1:
-            return -1, self.filename_version[filename]
+            error = ErrorResponse("Version Error")
+            error.wrong_version_error(self.filename_version[filename])
+            raise error
 
         # gather missing blocks
         missing_block_list = list()
@@ -86,7 +100,9 @@ class MetadataStore(rpyc.Service):
             self.filename_hashlist[filename] = hashlist
             return 0
         else:
-            return -2, str(missing_block_list)
+            error = ErrorResponse("Missing Block")
+            error.missing_blocks(missing_block_list)
+            raise error
 
     '''
         DeleteFile(f,v): Deletes file f. Like ModifyFile(), the provided
@@ -101,7 +117,9 @@ class MetadataStore(rpyc.Service):
         if filename in self.filename_version:
             # print("1," + str(version) + " " + str(self.filename_version[filename]))
             if int(version) != self.filename_version[filename] + 1:
-                return -1, self.filename_version[filename]
+                error = ErrorResponse("Version Error")
+                error.wrong_version_error(self.filename_version[filename])
+                raise error
             self.tombstone_filename_version[filename] = self.filename_version[filename] + 1
             del self.filename_hashlist[filename]
             del self.filename_version[filename]
@@ -109,11 +127,14 @@ class MetadataStore(rpyc.Service):
         elif filename in self.tombstone_filename_version:
             # print("2," + str(version) + " " + str(self.tombstone_filename_version[filename]))
             if int(version) != self.tombstone_filename_version[filename] + 1:
-                return -1, self.tombstone_filename_version[filename]
+                error = ErrorResponse("Version Error")
+                error.wrong_version_error(self.tombstone_filename_version[filename])
+                raise error
             self.tombstone_filename_version[filename] += 1
             return 0
         else:
-            return -3
+            error = ErrorResponse("Not Found")
+            raise error
 
     '''
         (v,hl) = ReadFile(f): Reads the file with filename f, returning the

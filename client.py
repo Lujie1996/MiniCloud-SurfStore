@@ -62,35 +62,32 @@ class SurfStoreClient():
         for key in self.hash_block:
             hashlist_to_send.append(key)
 
-        msg = self.metadata_conn.root.modify_file(filename, int(server_version)+1, str(hashlist_to_send))
-
-        # extract version and missing blocks from msg
-        missing_blocks = list()
-        new_server_version = int(server_version)
-
-        if isinstance(msg, int):
-            if msg == 0:
-                print("OK")
-                return
-        else:
-            if msg[0] == -1:
-                # version error
-                new_server_version = int(msg[1])
-            elif msg[0] == -2:
+        try:
+            self.metadata_conn.root.modify_file(filename, int(server_version)+1, str(hashlist_to_send))
+            print("OK")
+            return
+        except Exception as e:
+            # extract version and missing blocks from msg
+            missing_blocks = list()
+            new_server_version = int(server_version)
+            if e.error_type == 1:
                 # missing blocks
-                missing_blocks = list(eval(msg[1]))
+                missing_blocks = list(eval(e.missing_blocks))
+            elif e.error_type == 2:
+                # version error
+                new_server_version = int(e.current_version)
 
         # send missing blocks to blockstore
         for key in missing_blocks:
             server_no = int(key, 16) % self.no_of_block_stores
-            msg = self.blockstore_conns[server_no].root.store_block(key, self.hash_block[key])
+            self.blockstore_conns[server_no].root.store_block(key, self.hash_block[key])
 
         # second modify()
-        msg = self.metadata_conn.root.modify_file(filename, new_server_version+1, str(hashlist_to_send))
-        # print(new_server_version+1)
-        if msg == 0:
+        try:
+            self.metadata_conn.root.modify_file(filename, new_server_version+1, str(hashlist_to_send))
             print("OK")
-        else:
+            return
+        except:
             print("Second modify() call failed.")
 
     """
@@ -99,12 +96,11 @@ class SurfStoreClient():
 
     def delete(self, filename):
         server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
-        msg = self.metadata_conn.root.delete_file(filename, server_version+1)
-        
-        if msg == 0:
+        try:
+            self.metadata_conn.root.delete_file(filename, server_version+1)
             print("OK")
             return
-        elif msg == -3:
+        except Exception as e:
             print("Not Found")
             return
             
