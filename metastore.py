@@ -68,8 +68,6 @@ class MetadataStore(rpyc.Service):
     '''
 
     def exposed_modify_file(self, filename, version, hashlist):
-        return str(self.no_of_block_stores) + " " + str(self.blockstores) + " " + str(len(self.blockstore_conns))
-
         # serialize hashlist
         hashlist = list(eval(hashlist))
 
@@ -207,13 +205,13 @@ def parse_config(config):
 
 
 def connection_to(servers):
+    connections = list()
     for server in servers:
         host = server["host"]
         port = int(server["port"])
-        connections = list()
         conn = rpyc.connect(host, port)
         connections.append(conn)
-        return connections
+    return connections
 
 
 if __name__ == '__main__':
