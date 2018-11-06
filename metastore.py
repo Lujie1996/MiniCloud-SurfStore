@@ -69,7 +69,7 @@ class MetadataStore(rpyc.Service):
 
     def exposed_modify_file(self, filename, version, hashlist):
         # serialize hashlist
-        hashlist = list(eval(hashlist))
+        hashlist = list(hashlist)
 
         # check version
         if filename in self.filename_version and int(version) != self.filename_version[filename] + 1:
@@ -82,8 +82,6 @@ class MetadataStore(rpyc.Service):
 
         for hashnode in hashlist:
             server_no = int(hashnode, 16) % self.no_of_block_stores
-            print("server_no:" + str(server_no))
-            print("blockstore_conns.size(): " + str(len(self.blockstore_conns)))
             conn = self.blockstore_conns[server_no]
             if not conn.root.has_block(hashnode):
                 missing_block_list.append(hashnode)

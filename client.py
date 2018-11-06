@@ -64,7 +64,7 @@ class SurfStoreClient():
             hashlist_to_send.append(key)
 
         try:
-            self.metadata_conn.root.modify_file(filename, int(server_version)+1, str(hashlist_to_send))
+            self.metadata_conn.root.modify_file(filename, int(server_version)+1, hashlist_to_send)
             print("OK")
             return
         except Exception as e:
@@ -86,7 +86,7 @@ class SurfStoreClient():
 
         # second modify()
         try:
-            self.metadata_conn.root.modify_file(filename, new_server_version+1, str(hashlist_to_send))
+            self.metadata_conn.root.modify_file(filename, new_server_version+1, hashlist_to_send)
             print("OK")
             return
         except:
