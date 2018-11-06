@@ -68,6 +68,8 @@ class MetadataStore(rpyc.Service):
     '''
 
     def exposed_modify_file(self, filename, version, hashlist):
+        return str(self.no_of_block_stores)
+
         # serialize hashlist
         hashlist = list(eval(hashlist))
 
