@@ -124,7 +124,7 @@ class MetadataStore(rpyc.Service):
             self.tombstone_filename_version[filename] = self.filename_version[filename] + 1
             del self.filename_hashlist[filename]
             del self.filename_version[filename]
-            return 0
+            return self.tombstone_filename_version[filename]
         elif filename in self.tombstone_filename_version:
             # print("2," + str(version) + " " + str(self.tombstone_filename_version[filename]))
             if int(version) != self.tombstone_filename_version[filename] + 1:
@@ -132,7 +132,7 @@ class MetadataStore(rpyc.Service):
                 error.wrong_version_error(self.tombstone_filename_version[filename])
                 raise error
             self.tombstone_filename_version[filename] += 1
-            return 0
+            return self.tombstone_filename_version[filename]
         else:
             error = ErrorResponse("Not Found")
             raise error
