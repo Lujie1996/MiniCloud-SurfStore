@@ -82,6 +82,8 @@ class MetadataStore(rpyc.Service):
 
         for hashnode in hashlist:
             server_no = int(hashnode, 16) % self.no_of_block_stores
+            print("server_no:" + str(server_no))
+            print("blockstore_conns.size(): " + str(len(self.blockstore_conns)))
             conn = self.blockstore_conns[server_no]
             if not conn.root.has_block(hashnode):
                 missing_block_list.append(hashnode)
@@ -175,7 +177,7 @@ def parse_config(config):
     '''
 
     # parse config file and extract parameters
-    no_of_block_stores = int(lines[0].split(":")[-1])
+    no_of_block_stores = int(lines[0].split(": ")[-1])
     metadata = dict()
     metadata["host"] = lines[1].split(": ")[1].split(":")[0]  # type: str
     metadata["port"] = lines[1].split(": ")[1].split(":")[1]  # type: str
