@@ -101,7 +101,8 @@ class MetadataStore(rpyc.Service):
             return 0
         else:
             error = ErrorResponse("Missing Block")
-            error.missing_blocks(missing_block_list)
+            # error.missing_blocks(missing_block_list)
+            error.missing_blocks(tuple(missing_block_list))
             raise error
 
     '''

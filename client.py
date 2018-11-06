@@ -73,7 +73,8 @@ class SurfStoreClient():
             new_server_version = int(server_version)
             if e.error_type == 1:
                 # missing blocks
-                missing_blocks = list(eval(e.missing_blocks))
+                # missing_blocks = list(eval(e.missing_blocks))
+                missing_blocks = list(e.missing_blocks)
             elif e.error_type == 2:
                 # version error
                 new_server_version = int(e.current_version)
