@@ -1,6 +1,8 @@
-# CSE 224 Homework 5
+# CSE 224 Homework 7
 
-Basic starter code for Homework 5
+Basic starter code for Homework 7
+
+Modify config.txt to indicate the essential configurations.
 
 Use the following commands to run the blockstore, metadata store and the client - 
 
