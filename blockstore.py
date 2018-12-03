@@ -25,7 +25,8 @@ class BlockStore(rpyc.Service):
     """
 
     def exposed_store_block(self, h, block):
-        self.hash_table[h] = block;
+        print("store_block()")
+        self.hash_table[h] = block
 
     """
     	b = get_block(h) : Retrieves a block indexed by hash value h
@@ -34,8 +35,8 @@ class BlockStore(rpyc.Service):
     """
 
     def exposed_get_block(self, h):
-    	return self.hash_table[h]
-
+        print("get_block()")
+        return self.hash_table[h]
 
     """
         True/False = has_block(h) : Signals whether block indexed by h exists in the BlockStore service
@@ -44,11 +45,15 @@ class BlockStore(rpyc.Service):
     """
 
     def exposed_has_block(self, h):
+        print("has_block()")
         if h in self.hash_table:
             return True
         else:
             return False
 
+    def exposed_ping(self):
+        print("ping()")
+        return 1
 
 if __name__ == '__main__':
     from rpyc.utils.server import ThreadedServer

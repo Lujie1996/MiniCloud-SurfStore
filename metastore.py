@@ -1,5 +1,6 @@
 import rpyc
 import sys
+import copy
 
 '''
 A sample ErrorResponse class. Use this to respond to client requests when the request has any of the following issues - 
@@ -40,7 +41,7 @@ class MetadataStore(rpyc.Service):
     """
 
     def __init__(self, config):
-        self.filename_hashlist = dict()  # str -> []
+        self.filename_hashlist = dict()  # str -> [[hashkey, blocklocation],[],[],[],..]
         self.filename_version = dict()  # str -> int
 
         self.tombstone_filename_version = dict()  # str -> int
@@ -69,7 +70,11 @@ class MetadataStore(rpyc.Service):
 
     def exposed_modify_file(self, filename, version, hashlist):
         # make a local copy!
-        hashlist = list(hashlist)
+        # hashlist = list(hashlist)
+
+        # Very IMPORTANT! For more complex data structure, list() is not enough for copying
+        # Use deepcopy and don't forget to set 'allow_pickle: True' in configuration
+        hashlist = copy.deepcopy(hashlist)
 
         # check version
         if filename in self.filename_version and int(version) != self.filename_version[filename] + 1:
@@ -81,10 +86,10 @@ class MetadataStore(rpyc.Service):
         missing_block_list = list()
 
         for hashnode in hashlist:
-            server_no = int(hashnode, 16) % self.no_of_block_stores
+            server_no = hashnode[1]
             conn = self.blockstore_conns[server_no]
-            if not conn.root.has_block(hashnode):
-                missing_block_list.append(hashnode)
+            if not conn.root.has_block(hashnode[0]):
+                missing_block_list.append(hashnode[0])
 
         if len(missing_block_list) == 0:
             # modify filename -> version
@@ -98,6 +103,7 @@ class MetadataStore(rpyc.Service):
 
             # modify filename -> hashlist
             self.filename_hashlist[filename] = hashlist
+            # print(self.filename_hashlist)
             return 0
         else:
             error = ErrorResponse("Missing Block")
@@ -149,16 +155,12 @@ class MetadataStore(rpyc.Service):
     def exposed_read_file(self, filename):
         if filename in self.filename_hashlist:
             version = self.filename_version[filename]
-            hashlist = self.filename_hashlist[filename]
-            # return version, str(hashlist)
-            return version, hashlist
+            hashlocation = self.filename_hashlist[filename]
+            return version, hashlocation
         elif filename in self.tombstone_filename_version:
             version = self.tombstone_filename_version[filename]
-            hashlist = str(list())
-            # return version, hashlist
             return version, list()
         else:
-            # return 0, str(list())
             return 0, list()
 
 
@@ -199,7 +201,8 @@ def parse_config(config):
             t["port"] = t["port"][:-1]
         blockstores.append(t)
 
-    return no_of_block_stores, metadata, blockstores
+    block_replacement_algorithm = int(lines[2 + no_of_block_stores].split(": ")[-1])
+    return no_of_block_stores, metadata, blockstores, block_replacement_algorithm
 
 
 def connection_to(servers):
@@ -221,5 +224,6 @@ if __name__ == '__main__':
     port = port[:-1]
 
     from rpyc.utils.server import ThreadedServer
-    server = ThreadedServer(MetadataStore(sys.argv[1]), hostname=host, port=int(port), protocol_config={'allow_public_attrs': True,})
+    server = ThreadedServer(MetadataStore(sys.argv[1]), port=int(port), 
+        protocol_config={'allow_all_attrs': True, 'allow_pickle': True})
     server.start()

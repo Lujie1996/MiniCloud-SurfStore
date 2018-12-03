@@ -2,6 +2,8 @@ import rpyc
 import hashlib
 import os
 import sys
+import time
+import copy
 from metastore import parse_config, connection_to
 
 """
@@ -20,15 +22,18 @@ class SurfStoreClient():
     """
 
     def __init__(self, config):
-        self.hash_block = dict()
+        self.hash_block = dict() # SHAhashkey -> [block1, block2, ..]
 
         configuration = parse_config(config)
         self.no_of_block_stores = configuration[0]
         self.metadata = configuration[1]
         self.blockstores = configuration[2]
+        self.block_replacement_algorithm = configuration[3]
+
+        self.server_no = -1
 
         self.metadata_conn = rpyc.connect(self.metadata["host"], self.metadata["port"],
-                                          config={"allow_all_attrs": True, "instantiate_custom_exceptions": True})
+                                          config={"allow_all_attrs": True, "instantiate_custom_exceptions": True,  'allow_pickle': True})
         self.blockstore_conns = connection_to(self.blockstores)
 
     """
@@ -56,20 +61,22 @@ class SurfStoreClient():
                 else:
                     break
 
-        server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
+        server_version = self.metadata_conn.root.read_file(filename)[0]
 
         # first modify()
         hashlist_to_send = list()
         for key in self.hash_block:
-            hashlist_to_send.append(key)
+            server_no = self.get_block_location(key)
+            row = [key, server_no]
+            hashlist_to_send.append(row)
 
+        missing_blocks = list()
         try:
             self.metadata_conn.root.modify_file(filename, int(server_version)+1, hashlist_to_send)
             print("OK")
             return
         except Exception as e:
             # extract version and missing blocks from msg
-            missing_blocks = list()
             new_server_version = int(server_version)
             if e.error_type == 1:
                 # missing blocks
@@ -78,10 +85,10 @@ class SurfStoreClient():
             elif e.error_type == 2:
                 # version error
                 new_server_version = int(e.current_version)
-
+        
         # send missing blocks to blockstore
         for key in missing_blocks:
-            server_no = int(key, 16) % self.no_of_block_stores
+            server_no = self.get_block_location(key)
             self.blockstore_conns[server_no].root.store_block(key, self.hash_block[key])
 
         # second modify()
@@ -97,7 +104,7 @@ class SurfStoreClient():
     """
 
     def delete(self, filename):
-        server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
+        server_version = self.metadata_conn.root.read_file(filename)[0]
         try:
             self.metadata_conn.root.delete_file(filename, server_version+1)
             print("OK")
@@ -114,7 +121,7 @@ class SurfStoreClient():
 
     def download(self, filename, location):
         server_version, server_hashlist = self.metadata_conn.root.read_file(filename)
-        # server_hashlist = list(eval(server_hashlist))
+        # server_hashlist = copy.deepcopy(server_hashlist)
 
         # when file does not exist
         if len(server_hashlist) == 0:
@@ -122,19 +129,22 @@ class SurfStoreClient():
             return
 
         missing_blocks = list()
-        for key in server_hashlist:
+        for row in server_hashlist:
+            key = row[0]
+            server_no = row[1]
             if key not in self.hash_block:
-                missing_blocks.append(key)
+                missing_blocks.append([key, server_no])
 
         # fetch every individual blocks from blockstore
-        for key in missing_blocks:
-            server_no = int(key, 16) % self.no_of_block_stores
+        for row in missing_blocks:
+            key = row[0]
+            server_no = row[1]
             msg = self.blockstore_conns[server_no].root.get_block(key)
             self.hash_block[key] = msg
 
         # merge blocks
         content = b""
-        for key in server_hashlist:
+        for key in self.hash_block:
             content += self.hash_block[key]
 
         # write out file
@@ -157,6 +167,33 @@ class SurfStoreClient():
     def eprint(*args, **kwargs):
         print(*args, file=sys.stderr, **kwargs)
 
+    def get_block_location(self, block):
+        if self.block_replacement_algorithm == 0:
+            # hash-based
+            return int(block,16) % self.no_of_block_stores
+        elif self.block_replacement_algorithm == 1:
+            # nearest to client
+            if self.server_no != -1:
+                return self.server_no
+            else:
+                minRTT = 99999
+                for server in range(self.no_of_block_stores):
+                    thisRTT = self.get_RTT(server)
+                    print("RTT of BlockStore Server #" + str(server) + ": " + str(thisRTT))
+                    if  thisRTT < minRTT:
+                        minRTT = thisRTT
+                        self.server_no = server
+            print("Nearest BlockStore Server: #" + str(self.server_no))
+            return self.server_no
+
+    def get_RTT(self, server_no):
+        sum = 0
+        for i in range(5):
+            t0 = time.time()
+            self.blockstore_conns[server_no].root.ping()
+            t1 = time.time()
+            sum += (t1 - t0)
+        return sum / 5
 
 if __name__ == '__main__':
     client = SurfStoreClient(sys.argv[1])

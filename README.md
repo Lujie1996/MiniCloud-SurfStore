@@ -7,24 +7,24 @@ Use the following commands to run the blockstore, metadata store and the client 
 1. Blockstore - 
 
    ```shell
-   python blockstore.py <port-number>
+   python3 blockstore.py 5000
    ```
 
 2. Metadata store - 
 
    ```shell
-   python metastore.py config.txt
+   python3 metastore.py config.txt
    ```
 
 3. Client - 
 
    ```shell
    // to download a file
-   python client.py config.txt download myfile.jpg folder_name/
+   python3 client.py config.txt download myfile.jpg /
    
    // to upload a file
-   python client.py config.txt upload myfile.jpg
+   python3 client.py config.txt upload myfile.jpg
    
    // to delete a file
-   python client.py config.txt delete myfile.jpg
+   python3 client.py config.txt delete myfile.jpg
    ```

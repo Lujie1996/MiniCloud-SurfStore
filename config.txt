@@ -1,3 +1,7 @@
-B: 1
-metadata: localhost:6000
-block0: localhost:5000
+B: 4
+metadata: 34.221.83.176:6000
+block0: 54.180.106.188:5000
+block1: 54.94.217.82:5000
+block2: 13.233.98.174:5000
+block3: 63.32.103.37:5000
+block_replacement_algorithm: 0
