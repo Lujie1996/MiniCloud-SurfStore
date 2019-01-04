@@ -1,3 +1,11 @@
+Architecture and work flow can be found at 
+https://cseweb.ucsd.edu/~gmporter/classes/fa18/cse224/post/2018/11/08/hw-5-remote-procedure-calls-and-surfstore/
+
+This page extends the basic MiniCloud to support customized block-placement algorithm
+https://cseweb.ucsd.edu/~gmporter/classes/fa18/cse224/post/2018/11/09/hw-7-a-distributed-surfstore-service/
+
+Below shows how to start the program. 
+
 # CSE 224 Homework 7
 
 Basic starter code for Homework 7
