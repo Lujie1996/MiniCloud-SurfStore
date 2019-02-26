@@ -6,10 +6,6 @@ https://cseweb.ucsd.edu/~gmporter/classes/fa18/cse224/post/2018/11/09/hw-7-a-dis
 
 Below shows how to start the program. 
 
-# CSE 224 Homework 7
-
-Basic starter code for Homework 7
-
 Modify config.txt to indicate the essential configurations.
 
 Use the following commands to run the blockstore, metadata store and the client - 
